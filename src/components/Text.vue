@@ -7,22 +7,31 @@ export default {
   name: "Text",
   data() {
     return {
-      timer: null
+      timer: null,
+      isLoading: true,
+    }
+  },
+  methods: {
+    async getWords() {
+      const words = await fetchRandomWords(2, 6, 10);
+      return words.map(word => word.toLowerCase()).join(' ');
+
     }
   },
   components: {
     Letter
   },
-  async created() {
+  created() {
     const textStore = useTextStore();
-    let words = await fetchRandomWords(2, 6, 10);
-    words = words.map((word) => word.toLowerCase())
-    textStore.create(words.join(' '))
-    this.timer = setInterval(() => {
-      if (textStore.isEnd)
-        clearInterval(this.timer);
-      textStore.updateTime();
-    }, 1000);
+    this.getWords().then(words => {
+      this.isLoading = false
+      textStore.create(words)
+      this.timer = setInterval(() => {
+        if (textStore.isEnd)
+          clearInterval(this.timer);
+        textStore.updateTime();
+      }, 1000);
+    });
   },
   computed: {
     textStore() {
@@ -36,7 +45,8 @@ export default {
   <div class="wrapper">
     <div class="wpm">{{ Math.floor(textStore.calcWPM) }}</div>
     <div class="text">
-<!--      TODO: Group into Words component to avoid perenos-->
+      <div v-if="isLoading" class="loading-text">Loading...</div>
+      <!--      TODO: Group into Words component to avoid perenos-->
       <Letter v-for="(letter, index) of textStore.getTextBefore"
               :letter="letter.letter" :status="letter['status']"/>
       <Letter letter="|" status="cursor"/>
